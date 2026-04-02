@@ -1,6 +1,8 @@
 # Hierarchical to Flat — ВОР → ЛЗК
 
-Универсальный GUI-инструмент для трансформации иерархического списка **ВОР** (Ведомость объёмов работ) в плоский список **ЛЗК** (Лимитно-заборная карта).
+Универсальный инструмент трансформации иерархического списка **ВОР** (Ведомость объёмов работ) в плоский список **ЛЗК** (Лимитно-заборная карта).
+
+Доступен в двух режимах: **desktop GUI** (tkinter) и **web-сервис** (Flask).
 
 ---
 
@@ -33,8 +35,9 @@
 ## Требования
 
 - Python 3.10+
-- [openpyxl](https://openpyxl.readthedocs.io/) — `pip install openpyxl`
-- tkinter (входит в стандартную поставку Python)
+- [openpyxl](https://openpyxl.readthedocs.io/) `>=3.1`
+- tkinter (входит в стандартную поставку Python) — для desktop GUI
+- [Flask](https://flask.palletsprojects.com/) `>=3.0` — для web-сервиса
 
 ---
 
@@ -46,21 +49,43 @@ git clone https://github.com/myrisingsun/hierarchical-to-flat-app.git
 cd hierarchical-to-flat-app
 
 # Установить зависимости
-pip install openpyxl
+pip install -r requirements.txt
+```
 
-# Запустить
+### Desktop GUI
+
+```bash
 python transform_vor.py
+```
+
+### Web-сервис (порт 6511)
+
+```bash
+python app.py
+# Открыть в браузере: http://localhost:6511
 ```
 
 ---
 
 ## Использование
 
+### Desktop GUI
+
 1. Нажмите **Открыть…** и выберите Excel-файл ВОР (`.xlsx`)
 2. Лист и колонка «Кол-во итого» определяются **автоматически**
 3. При необходимости скорректируйте настройки колонок (A–Z)
 4. Укажите путь для выходного файла (по умолчанию `*_ЛЗК.xlsx`)
 5. Нажмите **Преобразовать**
+
+### Web-сервис
+
+1. Откройте `http://localhost:6511`
+2. Перетащите файл ВОР или нажмите для выбора
+3. Лист и колонка «Кол-во итого» определяются **автоматически**
+4. При необходимости скорректируйте настройки
+5. Нажмите **Скачать результат** — файл загрузится через браузер
+
+Файлы нигде не сохраняются — вся обработка происходит в памяти.
 
 ### Авто-определение режима
 
@@ -75,11 +100,18 @@ python transform_vor.py
 
 ```
 .
-├── transform_vor.py          # Основной скрипт (GUI + логика)
+├── vor_core.py               # Ядро трансформации (общая логика)
+├── transform_vor.py          # Desktop GUI (tkinter)
+├── app.py                    # Web-сервис (Flask, порт 6511)
+├── templates/
+│   └── index.html            # Web-интерфейс (vanilla JS)
+├── requirements.txt          # Зависимости Python
 ├── examples/
-│   └── sample_vor.xlsx       # Пример входного файла (обезличенный)
+│   ├── sample_vor.xlsx       # Пример входного файла (обезличенный)
+│   └── generate_sample.py    # Генератор примера
 ├── README.md
 ├── SPRINT1.md
+├── SPRINT2.md
 └── LICENSE
 ```
 

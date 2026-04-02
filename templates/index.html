@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Трансформация ВОР → ЛЗК</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 32px 16px 48px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a3a6e;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #666;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.10);
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #4472C4;
+      border-radius: 8px;
+      padding: 32px 16px;
+      text-align: center;
+      cursor: pointer;
+      color: #4472C4;
+      font-size: 0.95rem;
+      transition: background .15s;
+      margin-bottom: 20px;
+    }
+    #drop-zone.drag-over { background: #e8effe; }
+    #drop-zone.has-file  { border-style: solid; background: #f0f4ff; color: #1a3a6e; }
+
+    #file-input { display: none; }
+
+    /* Settings panel (hidden until detect) */
+    #settings {
+      display: none;
+      margin-top: 4px;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .form-row label {
+      flex: 0 0 180px;
+      font-size: 0.9rem;
+      color: #444;
+    }
+
+    .form-row select,
+    .form-row input[type="text"] {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    .col-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      margin-bottom: 20px;
+    }
+
+    .col-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .col-field label {
+      font-size: 0.82rem;
+      color: #555;
+    }
+
+    .col-field input {
+      padding: 5px 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 80px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 9px 22px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary  { background: #4472C4; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #2f5db0; }
+    .btn-success  { background: #2e7d32; color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #1b5e20; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    /* Status */
+    #status {
+      margin-top: 18px;
+      font-size: 0.88rem;
+      color: #555;
+      min-height: 1.4em;
+    }
+    #status.error { color: #c62828; }
+    #status.ok    { color: #2e7d32; }
+
+    /* Progress */
+    #progress-wrap {
+      display: none;
+      margin-top: 12px;
+    }
+    progress {
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    progress::-webkit-progress-bar   { background: #e0e0e0; border-radius: 4px; }
+    progress::-webkit-progress-value { background: #4472C4; border-radius: 4px; }
+
+    /* Mode badge */
+    #mode-badge {
+      display: none;
+      margin-top: 14px;
+      font-size: 0.82rem;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 20px;
+      padding: 3px 12px;
+      display: inline-block;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 0.78rem;
+      color: #aaa;
+      text-align: center;
+    }
+
+    hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>Трансформация ВОР → ЛЗК</h1>
+  <p class="subtitle">Иерархический список → плоский список материалов</p>
+
+  <div class="card">
+    <div class="section-title">1. Выберите файл ВОР (.xlsx)</div>
+    <div id="drop-zone">
+      <div id="drop-label">Перетащите файл сюда или нажмите для выбора</div>
+      <input type="file" id="file-input" accept=".xlsx,.xlsm">
+    </div>
+
+    <div id="settings">
+      <hr>
+      <div class="section-title">2. Настройки</div>
+
+      <div class="form-row">
+        <label>Лист:</label>
+        <select id="sheet-select"></select>
+      </div>
+
+      <div class="section-title" style="margin-top:8px;">Колонки (буква A–Z или номер)</div>
+      <div class="col-inputs">
+        <div class="col-field">
+          <label>№ п.п.</label>
+          <input type="text" id="col-num"  value="A" maxlength="3">
+        </div>
+        <div class="col-field">
+          <label>Наименование</label>
+          <input type="text" id="col-name" value="B" maxlength="3">
+        </div>
+        <div class="col-field">
+          <label>Ед. изм.</label>
+          <input type="text" id="col-unit" value="C" maxlength="3">
+        </div>
+        <div class="col-field">
+          <label>Кол-во итого</label>
+          <input type="text" id="col-qty"  value="G" maxlength="3">
+        </div>
+      </div>
+
+      <hr>
+      <div class="section-title">3. Преобразовать</div>
+      <div class="actions">
+        <button class="btn btn-success" id="btn-transform" onclick="doTransform()">
+          Скачать результат
+        </button>
+      </div>
+    </div>
+
+    <div id="progress-wrap">
+      <progress id="progress-bar" value="0" max="100"></progress>
+    </div>
+
+    <div id="status"></div>
+    <span id="mode-badge"></span>
+  </div>
+
+  <footer>
+    Разработка: Руководитель отдела архитектуры и проектирования — Пахарев Кирилл &nbsp;|&nbsp; kpakharev@afid.ru
+  </footer>
+
+  <script>
+    let uploadedFile = null;
+    let qtyColsMap = {};
+
+    // ── Drop zone ──────────────────────────────────────────────────────────────
+    const dropZone  = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+    const dropLabel = document.getElementById("drop-label");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      const f = e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    // ── Sheet selector → auto-update qty col ──────────────────────────────────
+    document.getElementById("sheet-select").addEventListener("change", function() {
+      const sheet = this.value;
+      if (qtyColsMap[sheet]) {
+        document.getElementById("col-qty").value = qtyColsMap[sheet];
+      }
+    });
+
+    // ── Handle file selection ─────────────────────────────────────────────────
+    function handleFile(file) {
+      uploadedFile = file;
+      dropZone.classList.add("has-file");
+      dropLabel.textContent = `📄 ${file.name}`;
+      setStatus("Анализ файла…", "");
+      document.getElementById("settings").style.display = "none";
+      document.getElementById("mode-badge").style.display = "none";
+      doDetect(file);
+    }
+
+    async function doDetect(file) {
+      const fd = new FormData();
+      fd.append("file", file);
+
+      try {
+        showProgress(true);
+        const res = await fetch("/detect", { method: "POST", body: fd });
+        const data = await res.json();
+        showProgress(false);
+
+        if (data.error) {
+          setStatus("Ошибка: " + data.error, "error");
+          return;
+        }
+
+        // Populate sheets
+        const sel = document.getElementById("sheet-select");
+        sel.innerHTML = "";
+        data.sheets.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          sel.appendChild(opt);
+        });
+        if (data.detected_sheet) sel.value = data.detected_sheet;
+
+        // Store qty col map
+        qtyColsMap = data.qty_cols || {};
+        const currentSheet = sel.value;
+        if (qtyColsMap[currentSheet]) {
+          document.getElementById("col-qty").value = qtyColsMap[currentSheet];
+        }
+
+        document.getElementById("settings").style.display = "block";
+        setStatus(`Листов найдено: ${data.sheets.length}. Авто-выбран: «${data.detected_sheet || data.sheets[0]}»`, "ok");
+      } catch (err) {
+        showProgress(false);
+        setStatus("Сетевая ошибка: " + err.message, "error");
+      }
+    }
+
+    // ── Transform ─────────────────────────────────────────────────────────────
+    async function doTransform() {
+      if (!uploadedFile) { setStatus("Выберите файл", "error"); return; }
+
+      const fd = new FormData();
+      fd.append("file", uploadedFile);
+      fd.append("sheet",    document.getElementById("sheet-select").value);
+      fd.append("col_num",  document.getElementById("col-num").value);
+      fd.append("col_name", document.getElementById("col-name").value);
+      fd.append("col_unit", document.getElementById("col-unit").value);
+      fd.append("col_qty",  document.getElementById("col-qty").value);
+
+      const btn = document.getElementById("btn-transform");
+      btn.disabled = true;
+      setStatus("Обработка…", "");
+      showProgress(true);
+
+      try {
+        const res = await fetch("/transform", { method: "POST", body: fd });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: res.statusText }));
+          setStatus("Ошибка: " + (data.error || res.statusText), "error");
+          showProgress(false);
+          btn.disabled = false;
+          return;
+        }
+
+        // Extract mode from custom header if present
+        const mode = res.headers.get("X-Transform-Mode") || "";
+
+        const blob = await res.blob();
+        showProgress(false);
+
+        // Derive filename from Content-Disposition or use default
+        let filename = "result_ЛЗК.xlsx";
+        const cd = res.headers.get("Content-Disposition");
+        if (cd) {
+          const m = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';\r\n]+)["']?/i);
+          if (m) filename = decodeURIComponent(m[1]);
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+        setStatus("Готово! Файл скачан.", "ok");
+        btn.disabled = false;
+
+      } catch (err) {
+        showProgress(false);
+        setStatus("Сетевая ошибка: " + err.message, "error");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function setStatus(msg, cls) {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = cls || "";
+    }
+
+    function showProgress(show) {
+      document.getElementById("progress-wrap").style.display = show ? "block" : "none";
+    }
+  </script>
+</body>
+</html>
