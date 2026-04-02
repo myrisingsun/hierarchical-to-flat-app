@@ -58,7 +58,7 @@ sudo -u vorlzk venv/bin/pip install -r requirements.txt gunicorn
 
 ```bash
 cd /opt/vor-lzk
-sudo -u vorlzk venv/bin/gunicorn --bind 0.0.0.0:6511 --workers 2 app:app
+sudo -u vorlzk venv/bin/gunicorn --bind 0.0.0.0:6511 --workers 2 --worker-tmp-dir /tmp app:app
 ```
 
 Откройте в браузере `http://<IP-сервера>:6511` — должен открыться интерфейс.
@@ -91,6 +91,7 @@ ExecStart=/opt/vor-lzk/venv/bin/gunicorn \
     --bind 0.0.0.0:6511 \
     --workers 2 \
     --timeout 120 \
+    --worker-tmp-dir /tmp \
     --access-logfile /var/log/vor-lzk/access.log \
     --error-logfile /var/log/vor-lzk/error.log \
     app:app
