@@ -31,7 +31,8 @@ sudo apt install -y python3 python3-pip python3-venv git
 sudo git clone https://github.com/myrisingsun/hierarchical-to-flat-app.git /opt/vor-lzk
 
 # Создать системного пользователя для сервиса (без прав входа)
-sudo useradd --system --no-create-home --shell /bin/false vorlzk
+# --home /opt/vor-lzk нужен, чтобы gunicorn мог писать свой control socket
+sudo useradd --system --no-create-home --home /opt/vor-lzk --shell /bin/false vorlzk
 
 # Передать владение папкой этому пользователю
 sudo chown -R vorlzk:vorlzk /opt/vor-lzk
