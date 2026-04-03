@@ -15,7 +15,7 @@ from tkinter import ttk, filedialog, messagebox
 try:
     from vor_core import (
         col_letter_to_index, is_hierarchy_num, detect_sheet,
-        detect_data_start, detect_qty_col, sheet_has_material_rows,
+        detect_data_start, detect_qty_col, detect_columns,
         transform,
     )
     import openpyxl
@@ -240,9 +240,10 @@ class App(tk.Tk):
 
         def worker():
             try:
+                selected_cols = [col_name, col_unit, col_qty]
                 count, mode, _ = transform(
                     input_file, sheet_name,
-                    col_num, col_name, col_unit, col_qty,
+                    col_num, selected_cols, None,
                     output_file,
                     progress_callback=self._update_progress,
                 )

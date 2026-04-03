@@ -15,22 +15,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
       padding: 32px 16px 48px;
     }
 
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-      color: #1a3a6e;
-    }
-
-    .subtitle {
-      font-size: 0.875rem;
-      color: #666;
-      margin-bottom: 28px;
-    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; color: #1a3a6e; }
+    .subtitle { font-size: 0.875rem; color: #666; margin-bottom: 28px; }
 
     .card {
       background: #fff;
@@ -38,17 +27,19 @@
       box-shadow: 0 2px 12px rgba(0,0,0,.10);
       padding: 28px 32px;
       width: 100%;
-      max-width: 600px;
+      max-width: 640px;
     }
 
     .section-title {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: .05em;
+      letter-spacing: .06em;
       color: #888;
       margin-bottom: 10px;
     }
+
+    hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
 
     /* Drop zone */
     #drop-zone {
@@ -64,62 +55,86 @@
     }
     #drop-zone.drag-over { background: #e8effe; }
     #drop-zone.has-file  { border-style: solid; background: #f0f4ff; color: #1a3a6e; }
-
     #file-input { display: none; }
 
-    /* Settings panel (hidden until detect) */
-    #settings {
-      display: none;
-      margin-top: 4px;
-    }
-
+    /* Sheet selector */
     .form-row {
       display: flex;
       align-items: center;
       gap: 10px;
       margin-bottom: 14px;
     }
-
-    .form-row label {
-      flex: 0 0 180px;
-      font-size: 0.9rem;
-      color: #444;
-    }
-
-    .form-row select,
-    .form-row input[type="text"] {
+    .form-row label { flex: 0 0 60px; font-size: 0.9rem; color: #444; }
+    .form-row select {
       flex: 1;
       padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 0.9rem;
-      background: #fff;
     }
 
-    .col-inputs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px 24px;
-      margin-bottom: 20px;
+    /* Column info */
+    .col-num-info {
+      font-size: 0.82rem;
+      color: #777;
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 7px 12px;
+      margin-bottom: 12px;
     }
 
-    .col-field {
+    /* Checkbox list */
+    .col-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .btn-sm {
+      padding: 4px 12px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      background: #f5f5f5;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #444;
+      transition: background .12s;
+    }
+    .btn-sm:hover { background: #e8e8e8; }
+
+    .col-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-    }
-
-    .col-field label {
-      font-size: 0.82rem;
-      color: #555;
-    }
-
-    .col-field input {
-      padding: 5px 8px;
-      border: 1px solid #ccc;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid #e8e8e8;
       border-radius: 6px;
-      font-size: 0.9rem;
-      width: 80px;
+      padding: 10px 12px;
+      background: #fafafa;
+    }
+
+    .col-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: #333;
+      cursor: pointer;
+      user-select: none;
+    }
+    .col-item input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+      accent-color: #4472C4;
+    }
+    .col-letter {
+      font-weight: 600;
+      color: #4472C4;
+      min-width: 24px;
+      font-size: 0.82rem;
     }
 
     /* Buttons */
@@ -131,19 +146,15 @@
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity .15s;
+      transition: opacity .15s, background .15s;
     }
     .btn:disabled { opacity: .45; cursor: not-allowed; }
-    .btn-primary  { background: #4472C4; color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: #2f5db0; }
-    .btn-success  { background: #2e7d32; color: #fff; }
+    .btn-success { background: #2e7d32; color: #fff; }
     .btn-success:hover:not(:disabled) { background: #1b5e20; }
+    .btn-neutral { background: #e0e0e0; color: #444; }
+    .btn-neutral:hover { background: #c8c8c8; }
 
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 6px;
-    }
+    .actions { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
 
     /* Status */
     #status {
@@ -156,31 +167,16 @@
     #status.ok    { color: #2e7d32; }
 
     /* Progress */
-    #progress-wrap {
-      display: none;
-      margin-top: 12px;
-    }
+    #progress-wrap { display: none; margin-top: 12px; }
     progress {
-      width: 100%;
-      height: 6px;
-      border-radius: 4px;
-      appearance: none;
-      -webkit-appearance: none;
+      width: 100%; height: 6px; border-radius: 4px;
+      appearance: none; -webkit-appearance: none;
     }
     progress::-webkit-progress-bar   { background: #e0e0e0; border-radius: 4px; }
     progress::-webkit-progress-value { background: #4472C4; border-radius: 4px; }
 
-    /* Mode badge */
-    #mode-badge {
-      display: none;
-      margin-top: 14px;
-      font-size: 0.82rem;
-      background: #e8f5e9;
-      color: #2e7d32;
-      border-radius: 20px;
-      padding: 3px 12px;
-      display: inline-block;
-    }
+    /* Settings hidden until detect */
+    #settings { display: none; margin-top: 4px; }
 
     footer {
       margin-top: 32px;
@@ -188,55 +184,58 @@
       color: #aaa;
       text-align: center;
     }
-
-    hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
   </style>
 </head>
 <body>
   <h1>Трансформация ВОР → ЛЗК</h1>
-  <p class="subtitle">Иерархический список → плоский список материалов</p>
+  <p class="subtitle">Иерархический список → плоский список</p>
 
   <div class="card">
+
+    <!-- Шаг 1: файл -->
     <div class="section-title">1. Выберите файл ВОР (.xlsx)</div>
     <div id="drop-zone">
       <div id="drop-label">Перетащите файл сюда или нажмите для выбора</div>
       <input type="file" id="file-input" accept=".xlsx,.xlsm">
     </div>
 
+    <!-- Шаги 2-3: настройки (появляются после detect) -->
     <div id="settings">
       <hr>
-      <div class="section-title">2. Настройки</div>
 
+      <!-- Шаг 2: лист -->
+      <div class="section-title">2. Выберите лист</div>
       <div class="form-row">
         <label>Лист:</label>
         <select id="sheet-select"></select>
       </div>
 
-      <div class="section-title" style="margin-top:8px;">Колонки (буква A–Z или номер)</div>
-      <div class="col-inputs">
-        <div class="col-field">
-          <label>№ п.п.</label>
-          <input type="text" id="col-num"  value="A" maxlength="3">
-        </div>
-        <div class="col-field">
-          <label>Наименование</label>
-          <input type="text" id="col-name" value="B" maxlength="3">
-        </div>
-        <div class="col-field">
-          <label>Ед. изм.</label>
-          <input type="text" id="col-unit" value="C" maxlength="3">
-        </div>
-        <div class="col-field">
-          <label>Кол-во итого</label>
-          <input type="text" id="col-qty"  value="G" maxlength="3">
-        </div>
+      <hr>
+
+      <!-- Шаг 3: столбцы -->
+      <div class="section-title">3. Выберите столбцы для экспорта</div>
+      <div class="col-num-info" id="col-num-info">
+        Столбец A — используется для определения иерархии, в экспорт не включается.
+      </div>
+
+      <div class="col-toolbar">
+        <button class="btn-sm" onclick="selectAllCols(true)">Выбрать все</button>
+        <button class="btn-sm" onclick="selectAllCols(false)">Снять все</button>
+      </div>
+      <div class="col-list" id="col-list">
+        <!-- заполняется JS -->
       </div>
 
       <hr>
-      <div class="section-title">3. Преобразовать</div>
+
+      <!-- Шаг 4: действия -->
+      <div class="section-title">4. Преобразовать</div>
       <div class="actions">
         <button class="btn btn-success" id="btn-transform" onclick="doTransform()">
           Скачать результат
+        </button>
+        <button class="btn btn-neutral" onclick="location.reload()">
+          Очистить
         </button>
       </div>
     </div>
@@ -244,9 +243,7 @@
     <div id="progress-wrap">
       <progress id="progress-bar" value="0" max="100"></progress>
     </div>
-
     <div id="status"></div>
-    <span id="mode-badge"></span>
   </div>
 
   <footer>
@@ -255,19 +252,15 @@
 
   <script>
     let uploadedFile = null;
-    let qtyColsMap = {};
+    let sheetColumnsMap = {};   // sheet_name → [{index, letter, header}]
 
-    // ── Drop zone ──────────────────────────────────────────────────────────────
+    // ── Drop zone ─────────────────────────────────────────────────────────────
     const dropZone  = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
     const dropLabel = document.getElementById("drop-label");
 
     dropZone.addEventListener("click", () => fileInput.click());
-
-    dropZone.addEventListener("dragover", e => {
-      e.preventDefault();
-      dropZone.classList.add("drag-over");
-    });
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
     dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
     dropZone.addEventListener("drop", e => {
       e.preventDefault();
@@ -275,46 +268,34 @@
       const f = e.dataTransfer.files[0];
       if (f) handleFile(f);
     });
+    fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    // ── Sheet select → update columns ─────────────────────────────────────────
+    document.getElementById("sheet-select").addEventListener("change", function () {
+      renderColumns(this.value);
     });
 
-    // ── Sheet selector → auto-update qty col ──────────────────────────────────
-    document.getElementById("sheet-select").addEventListener("change", function() {
-      const sheet = this.value;
-      if (qtyColsMap[sheet]) {
-        document.getElementById("col-qty").value = qtyColsMap[sheet];
-      }
-    });
-
-    // ── Handle file selection ─────────────────────────────────────────────────
+    // ── File → detect ─────────────────────────────────────────────────────────
     function handleFile(file) {
       uploadedFile = file;
       dropZone.classList.add("has-file");
-      dropLabel.textContent = `📄 ${file.name}`;
+      dropLabel.textContent = "📄 " + file.name;
       setStatus("Анализ файла…", "");
       document.getElementById("settings").style.display = "none";
-      document.getElementById("mode-badge").style.display = "none";
       doDetect(file);
     }
 
     async function doDetect(file) {
       const fd = new FormData();
       fd.append("file", file);
-
+      showProgress(true);
       try {
-        showProgress(true);
         const res = await fetch("/detect", { method: "POST", body: fd });
         const data = await res.json();
         showProgress(false);
+        if (data.error) { setStatus("Ошибка: " + data.error, "error"); return; }
 
-        if (data.error) {
-          setStatus("Ошибка: " + data.error, "error");
-          return;
-        }
-
-        // Populate sheets
+        // Заполнить список листов
         const sel = document.getElementById("sheet-select");
         sel.innerHTML = "";
         data.sheets.forEach(s => {
@@ -325,32 +306,83 @@
         });
         if (data.detected_sheet) sel.value = data.detected_sheet;
 
-        // Store qty col map
-        qtyColsMap = data.qty_cols || {};
-        const currentSheet = sel.value;
-        if (qtyColsMap[currentSheet]) {
-          document.getElementById("col-qty").value = qtyColsMap[currentSheet];
-        }
+        // Сохранить данные о столбцах
+        sheetColumnsMap = data.sheet_columns || {};
+
+        // Отрисовать столбцы для выбранного листа
+        renderColumns(sel.value);
 
         document.getElementById("settings").style.display = "block";
-        setStatus(`Листов найдено: ${data.sheets.length}. Авто-выбран: «${data.detected_sheet || data.sheets[0]}»`, "ok");
+        setStatus(
+          "Листов найдено: " + data.sheets.length +
+          ". Авто-выбран: «" + (data.detected_sheet || data.sheets[0]) + "»",
+          "ok"
+        );
       } catch (err) {
         showProgress(false);
         setStatus("Сетевая ошибка: " + err.message, "error");
       }
     }
 
+    // ── Render column checkboxes ──────────────────────────────────────────────
+    function renderColumns(sheetName) {
+      const cols = sheetColumnsMap[sheetName] || [];
+      const list = document.getElementById("col-list");
+      list.innerHTML = "";
+
+      if (cols.length === 0) {
+        list.innerHTML = "<span style='color:#aaa;font-size:.85rem'>Нет доступных столбцов</span>";
+        return;
+      }
+
+      cols.forEach(col => {
+        const label = document.createElement("label");
+        label.className = "col-item";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = col.letter;
+        cb.checked = true;   // все отмечены по умолчанию
+        cb.dataset.idx = col.index;
+
+        const letter = document.createElement("span");
+        letter.className = "col-letter";
+        letter.textContent = col.letter;
+
+        const header = document.createElement("span");
+        header.textContent = "— " + col.header;
+
+        label.appendChild(cb);
+        label.appendChild(letter);
+        label.appendChild(header);
+        list.appendChild(label);
+      });
+    }
+
+    // ── Select/deselect all ───────────────────────────────────────────────────
+    function selectAllCols(checked) {
+      document.querySelectorAll("#col-list input[type='checkbox']")
+        .forEach(cb => cb.checked = checked);
+    }
+
     // ── Transform ─────────────────────────────────────────────────────────────
     async function doTransform() {
       if (!uploadedFile) { setStatus("Выберите файл", "error"); return; }
 
+      const checked = Array.from(
+        document.querySelectorAll("#col-list input[type='checkbox']:checked")
+      ).map(cb => cb.value);
+
+      if (checked.length === 0) {
+        setStatus("Выберите хотя бы один столбец для экспорта", "error");
+        return;
+      }
+
       const fd = new FormData();
       fd.append("file", uploadedFile);
-      fd.append("sheet",    document.getElementById("sheet-select").value);
-      fd.append("col_num",  document.getElementById("col-num").value);
-      fd.append("col_name", document.getElementById("col-name").value);
-      fd.append("col_unit", document.getElementById("col-unit").value);
-      fd.append("col_qty",  document.getElementById("col-qty").value);
+      fd.append("sheet",   document.getElementById("sheet-select").value);
+      fd.append("col_num", "A");
+      fd.append("cols",    checked.join(","));
 
       const btn = document.getElementById("btn-transform");
       btn.disabled = true;
@@ -359,7 +391,6 @@
 
       try {
         const res = await fetch("/transform", { method: "POST", body: fd });
-
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: res.statusText }));
           setStatus("Ошибка: " + (data.error || res.statusText), "error");
@@ -368,13 +399,10 @@
           return;
         }
 
-        // Extract mode from custom header if present
-        const mode = res.headers.get("X-Transform-Mode") || "";
-
         const blob = await res.blob();
         showProgress(false);
 
-        // Derive filename from Content-Disposition or use default
+        // Имя файла из Content-Disposition
         let filename = "result_ЛЗК.xlsx";
         const cd = res.headers.get("Content-Disposition");
         if (cd) {
@@ -392,7 +420,6 @@
 
         setStatus("Готово! Файл скачан.", "ok");
         btn.disabled = false;
-
       } catch (err) {
         showProgress(false);
         setStatus("Сетевая ошибка: " + err.message, "error");
@@ -406,7 +433,6 @@
       el.textContent = msg;
       el.className = cls || "";
     }
-
     function showProgress(show) {
       document.getElementById("progress-wrap").style.display = show ? "block" : "none";
     }

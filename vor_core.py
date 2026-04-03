@@ -104,15 +104,73 @@ def detect_qty_col(ws, col_num: int) -> int | None:
     return None
 
 
-def sheet_has_material_rows(ws, col_num: int, col_qty: int, data_start: int) -> bool:
-    """Проверить, есть ли на листе строки материалов (col_num=None с числовым кол-вом)."""
+def detect_columns(ws, col_num_idx: int) -> list:
+    """
+    Вернуть список всех значимых колонок листа, кроме col_num_idx.
+
+    Заголовки берутся из строки перед data_start. Если строки нет —
+    используются буквы колонок.
+
+    Возвращает: [{"index": int, "letter": str, "header": str}, ...]
+    """
+    data_start = detect_data_start(ws, col_num_idx)
+    header_row_idx = data_start - 1
+
+    # Считать строку заголовков
+    col_headers = {}
+    if header_row_idx >= 1:
+        for row in ws.iter_rows(
+            min_row=header_row_idx, max_row=header_row_idx, values_only=True
+        ):
+            for ci, cell in enumerate(row):
+                if cell is not None:
+                    text = str(cell).strip()
+                    if text and text.lower() != 'none':
+                        col_headers[ci] = text
+            break
+
+    # Определить максимальный используемый столбец из данных
+    max_col = ws.max_column or 0
+
+    result = []
+    for i in range(max_col):
+        if i == col_num_idx:
+            continue
+        letter = get_column_letter(i + 1)
+        header = col_headers.get(i, letter)
+        result.append({"index": i, "letter": letter, "header": header})
+
+    # Убрать хвостовые колонки без заголовка и без данных
+    # Оставляем все, у которых есть заголовок или есть данные в первых 50 строках
+    data_cols = set()
+    for row in ws.iter_rows(
+        min_row=data_start, max_row=min(data_start + 50, ws.max_row), values_only=True
+    ):
+        for ci, cell in enumerate(row):
+            if cell is not None and ci != col_num_idx:
+                data_cols.add(ci)
+
+    result = [
+        col for col in result
+        if col["index"] in col_headers or col["index"] in data_cols
+    ]
+
+    return result
+
+
+def sheet_has_material_rows(ws, col_num: int, data_start: int) -> bool:
+    """
+    Проверить, есть ли на листе строки материалов.
+    Материальная строка — та, где col_num пуст, но есть содержимое в других ячейках.
+    """
     checked = 0
     for row in ws.iter_rows(min_row=data_start, values_only=True):
         num = row[col_num] if col_num < len(row) else None
         if num is None:
-            qty = row[col_qty] if col_qty < len(row) else None
-            name = row[col_num + 1] if col_num + 1 < len(row) else None
-            if qty is not None and name:
+            other_content = any(
+                row[i] for i in range(len(row)) if i != col_num
+            )
+            if other_content:
                 return True
         checked += 1
         if checked > 200:
@@ -128,18 +186,20 @@ def transform(
     input_source,
     sheet_name: str,
     col_num: int,
-    col_name: int,
-    col_unit: int,
-    col_qty: int,
+    selected_cols: list,
+    col_headers: list | None = None,
     output_target=None,
     progress_callback=None,
-) -> tuple[int, str, BytesIO | None]:
+) -> tuple:
     """
     Трансформирует иерархический ВОР в плоский список.
 
-    input_source  — путь к файлу (str) или файлоподобный объект (BytesIO)
-    output_target — путь к файлу (str), файлоподобный объект, или None.
-                    Если None — возвращает BytesIO с результатом (диск не задействован).
+    input_source   — путь к файлу (str) или файлоподобный объект (BytesIO)
+    sheet_name     — имя листа
+    col_num        — 0-based индекс колонки с иерархическим номером
+    selected_cols  — список 0-based индексов колонок для экспорта
+    col_headers    — список заголовков для selected_cols (None → буквы колонок)
+    output_target  — путь к файлу (str) или None (вернуть BytesIO)
 
     Возвращает (количество_строк, режим, buf_или_None).
     """
@@ -147,8 +207,12 @@ def transform(
     ws = wb[sheet_name]
 
     data_start = detect_data_start(ws, col_num)
-    has_materials = sheet_has_material_rows(ws, col_num, col_qty, data_start)
+    has_materials = sheet_has_material_rows(ws, col_num, data_start)
     mode = "с материалами" if has_materials else "только работы"
+
+    # Подготовить заголовки
+    if col_headers is None:
+        col_headers = [get_column_letter(ci + 1) for ci in selected_cols]
 
     current_section = ""
     current_work_num = ""
@@ -157,6 +221,12 @@ def transform(
 
     total_rows = ws.max_row
     processed = 0
+
+    def get_vals(row):
+        return [
+            row[ci] if ci < len(row) else None
+            for ci in selected_cols
+        ]
 
     for row in ws.iter_rows(min_row=data_start, values_only=True):
         processed += 1
@@ -167,53 +237,45 @@ def transform(
             continue
 
         num = row[col_num] if col_num < len(row) else None
-        name = row[col_name] if col_name < len(row) else None
 
         if num is None:
             if not has_materials:
                 continue
-            qty_val = row[col_qty] if col_qty < len(row) else None
-            unit_val = row[col_unit] if col_unit < len(row) else None
-            if qty_val is not None and name:
-                rows_out.append((
-                    current_work_num,
-                    current_section,
-                    current_work_name,
-                    str(name).strip(),
-                    str(unit_val).strip() if unit_val else "",
-                    qty_val,
-                    None, None,
-                ))
+            # Материальная строка — есть хоть какое-то содержимое
+            other_content = any(row[i] for i in range(len(row)) if i != col_num)
+            if other_content:
+                vals = get_vals(row)
+                rows_out.append(
+                    (current_work_num, current_section, current_work_name) + tuple(vals)
+                )
         elif is_hierarchy_num(num):
             num_str = str(num).strip()
             depth = num_str.count('.')
+            # Имя берём из первого непустого значения после col_num
+            name = None
+            for ci in range(col_num + 1, min(len(row), col_num + 5)):
+                if row[ci] is not None:
+                    name = str(row[ci]).strip()
+                    break
             if depth == 0:
-                current_section = str(name).strip() if name else ""
+                current_section = name or ""
             if depth >= 2:
                 current_work_num = num_str
-                current_work_name = str(name).strip() if name else ""
+                current_work_name = name or ""
                 if not has_materials:
-                    qty_val = row[col_qty] if col_qty < len(row) else None
-                    unit_val = row[col_unit] if col_unit < len(row) else None
-                    if current_work_name:
-                        rows_out.append((
-                            current_work_num,
-                            current_section,
-                            current_work_name,
-                            None,
-                            str(unit_val).strip() if unit_val else "",
-                            qty_val,
-                            None, None,
-                        ))
+                    vals = get_vals(row)
+                    rows_out.append(
+                        (current_work_num, current_section, current_work_name) + tuple(vals)
+                    )
         else:
             if rows_out:
                 break
 
-    buf = _write_output(rows_out, output_target)
+    buf = _write_output(rows_out, col_headers, output_target)
     return len(rows_out), mode, buf
 
 
-def _write_output(rows: list, output_target) -> BytesIO | None:
+def _write_output(rows: list, col_headers: list, output_target) -> BytesIO | None:
     """
     Записать плоский список в Excel.
     output_target=None  → вернуть BytesIO (без диска)
@@ -223,16 +285,12 @@ def _write_output(rows: list, output_target) -> BytesIO | None:
     ws_out = wb_out.active
     ws_out.title = "ЛЗК"
 
-    headers = [
+    fixed_headers = [
         "№ работ",
         "Раздел сметы",
         "Наименование работ",
-        "Наименование материалов",
-        "Ед.\nизм. (материалы)",
-        "Кол-во (материалы)",
-        "Цена",
-        "Сумма",
     ]
+    headers = fixed_headers + list(col_headers)
 
     header_fill = PatternFill("solid", fgColor="4472C4")
     header_font = Font(bold=True, color="FFFFFF", size=10)
@@ -253,16 +311,18 @@ def _write_output(rows: list, output_target) -> BytesIO | None:
     for row in rows:
         ws_out.append(list(row))
         ri = ws_out.max_row
-        ws_out.cell(ri, 1).alignment = cell_align_center
-        ws_out.cell(ri, 2).alignment = cell_align_wrap
-        ws_out.cell(ri, 3).alignment = cell_align_wrap
-        ws_out.cell(ri, 4).alignment = cell_align_wrap
-        ws_out.cell(ri, 5).alignment = cell_align_center
-        ws_out.cell(ri, 6).alignment = cell_align_center
+        ws_out.cell(ri, 1).alignment = cell_align_center   # № работ
+        ws_out.cell(ri, 2).alignment = cell_align_wrap     # Раздел
+        ws_out.cell(ri, 3).alignment = cell_align_wrap     # Наименование работ
+        for ci in range(4, len(headers) + 1):
+            ws_out.cell(ri, ci).alignment = cell_align_wrap
 
-    col_widths = [10, 25, 50, 50, 12, 12, 12, 12]
-    for ci, w in enumerate(col_widths, start=1):
+    # Ширины: фиксированные 3 + 20 для динамических
+    fixed_widths = [10, 25, 50]
+    for ci, w in enumerate(fixed_widths, start=1):
         ws_out.column_dimensions[get_column_letter(ci)].width = w
+    for ci in range(len(fixed_widths) + 1, len(headers) + 1):
+        ws_out.column_dimensions[get_column_letter(ci)].width = 20
 
     ws_out.freeze_panes = "A2"
 
