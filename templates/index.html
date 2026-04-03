@@ -253,6 +253,7 @@
   <script>
     let uploadedFile = null;
     let sheetColumnsMap = {};   // sheet_name → [{index, letter, header}]
+    let nameColsMap = {};       // sheet_name → name column index (int)
 
     // ── Drop zone ─────────────────────────────────────────────────────────────
     const dropZone  = document.getElementById("drop-zone");
@@ -308,6 +309,7 @@
 
         // Сохранить данные о столбцах
         sheetColumnsMap = data.sheet_columns || {};
+        nameColsMap = data.name_cols || {};
 
         // Отрисовать столбцы для выбранного листа
         renderColumns(sel.value);
@@ -327,6 +329,7 @@
     // ── Render column checkboxes ──────────────────────────────────────────────
     function renderColumns(sheetName) {
       const cols = sheetColumnsMap[sheetName] || [];
+      const nameColIdx = nameColsMap[sheetName] ?? -1;
       const list = document.getElementById("col-list");
       list.innerHTML = "";
 
@@ -336,13 +339,16 @@
       }
 
       cols.forEach(col => {
+        const isNameCol = col.index === nameColIdx;
+
         const label = document.createElement("label");
         label.className = "col-item";
+        if (isNameCol) label.title = "Эта колонка используется как «Наименование работ» и не дублируется в экспорте";
 
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.value = col.letter;
-        cb.checked = true;   // все отмечены по умолчанию
+        cb.checked = true;
         cb.dataset.idx = col.index;
 
         const letter = document.createElement("span");
@@ -352,9 +358,20 @@
         const header = document.createElement("span");
         header.textContent = "— " + col.header;
 
-        label.appendChild(cb);
-        label.appendChild(letter);
-        label.appendChild(header);
+        if (isNameCol) {
+          const note = document.createElement("span");
+          note.textContent = " (= Наименование работ)";
+          note.style.cssText = "color:#888;font-size:.78rem;margin-left:4px;";
+          label.appendChild(cb);
+          label.appendChild(letter);
+          label.appendChild(header);
+          label.appendChild(note);
+        } else {
+          label.appendChild(cb);
+          label.appendChild(letter);
+          label.appendChild(header);
+        }
+
         list.appendChild(label);
       });
     }

@@ -104,6 +104,21 @@ def detect_qty_col(ws, col_num: int) -> int | None:
     return None
 
 
+def detect_name_col(ws, col_num_idx: int) -> int | None:
+    """
+    Найти колонку с наименованием работы/материала.
+    Это первая непустая колонка после col_num_idx в строке с иерархическим номером.
+    """
+    data_start = detect_data_start(ws, col_num_idx)
+    for row in ws.iter_rows(min_row=data_start, max_row=min(data_start + 50, ws.max_row), values_only=True):
+        num = row[col_num_idx] if col_num_idx < len(row) else None
+        if is_hierarchy_num(num) and str(num).count('.') >= 1:
+            for ci in range(col_num_idx + 1, min(len(row), col_num_idx + 6)):
+                if row[ci] is not None and str(row[ci]).strip():
+                    return ci
+    return col_num_idx + 1  # fallback: следующая колонка
+
+
 def detect_columns(ws, col_num_idx: int) -> list:
     """
     Вернуть список всех значимых колонок листа, кроме col_num_idx.
@@ -213,6 +228,23 @@ def transform(
     # Подготовить заголовки
     if col_headers is None:
         col_headers = [get_column_letter(ci + 1) for ci in selected_cols]
+
+    # В режиме "только работы" имя работы уже идёт в фиксированный столбец
+    # "Наименование работ" — исключаем name_col из selected_cols чтобы не дублировать.
+    # В режиме "с материалами" name_col в строках материалов содержит имя материала
+    # (другие данные) — не исключаем.
+    if not has_materials:
+        name_col_idx = detect_name_col(ws, col_num)
+        filtered = [
+            (ci, hdr) for ci, hdr in zip(selected_cols, col_headers)
+            if ci != name_col_idx
+        ]
+        if filtered:
+            selected_cols, col_headers = zip(*filtered)
+            selected_cols = list(selected_cols)
+            col_headers = list(col_headers)
+        else:
+            selected_cols, col_headers = [], []
 
     current_section = ""
     current_work_num = ""

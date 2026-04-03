@@ -16,7 +16,7 @@ from openpyxl.utils import get_column_letter
 
 from vor_core import (
     col_letter_to_index, detect_sheet, detect_qty_col,
-    detect_columns, transform,
+    detect_columns, detect_name_col, transform,
 )
 
 app = Flask(__name__)
@@ -65,18 +65,19 @@ def detect():
     col_num_idx = 0  # колонка иерархии — всегда A (индекс 0)
     qty_cols = {}
     sheet_columns = {}
+    name_cols = {}  # индекс колонки с наименованием (будет исключена из экспорта в режиме "только работы")
 
     for name in sheets:
         try:
             ws = wb[name]
-            # Колонка кол-во
             idx = detect_qty_col(ws, col_num_idx)
             qty_cols[name] = get_column_letter(idx + 1) if idx is not None else None
-            # Все колонки
             sheet_columns[name] = detect_columns(ws, col_num_idx)
+            name_cols[name] = detect_name_col(ws, col_num_idx)
         except Exception:
             qty_cols[name] = None
             sheet_columns[name] = []
+            name_cols[name] = None
 
     wb.close()
     return jsonify({
@@ -84,6 +85,7 @@ def detect():
         "detected_sheet": detected,
         "qty_cols": qty_cols,
         "sheet_columns": sheet_columns,
+        "name_cols": name_cols,
     })
 
 
