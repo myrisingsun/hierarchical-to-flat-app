@@ -378,11 +378,13 @@
         return;
       }
 
+      const sel = document.getElementById("sheet-select");
       const fd = new FormData();
-      fd.append("file", uploadedFile);
-      fd.append("sheet",   document.getElementById("sheet-select").value);
-      fd.append("col_num", "A");
-      fd.append("cols",    checked.join(","));
+      fd.append("file",      uploadedFile);
+      fd.append("sheet",     sel.value);
+      fd.append("sheet_idx", sel.selectedIndex);
+      fd.append("col_num",   "A");
+      fd.append("cols",      checked.join(","));
 
       const btn = document.getElementById("btn-transform");
       btn.disabled = true;

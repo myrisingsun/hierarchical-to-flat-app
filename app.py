@@ -25,7 +25,12 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = render_template("index.html")
+    from flask import make_response
+    r = make_response(resp)
+    r.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    return r
 
 
 @app.route("/detect", methods=["POST"])
@@ -98,18 +103,14 @@ def do_transform():
     if not file:
         return jsonify({"error": "Файл не передан"}), 400
 
-    sheet_name = request.form.get("sheet", "").strip()
-    if not sheet_name:
-        return jsonify({"error": "Не указан лист"}), 400
+    cols_raw = request.form.get("cols", "").strip()
+    if not cols_raw:
+        return jsonify({"error": "Не выбраны столбцы для экспорта"}), 400
 
     try:
         col_num = col_letter_to_index(request.form.get("col_num", "A"))
     except Exception as e:
         return jsonify({"error": f"Неверное обозначение колонки иерархии: {e}"}), 400
-
-    cols_raw = request.form.get("cols", "").strip()
-    if not cols_raw:
-        return jsonify({"error": "Не выбраны столбцы для экспорта"}), 400
 
     try:
         selected_cols = [
@@ -123,6 +124,18 @@ def do_transform():
     try:
         data = file.read()
         wb = openpyxl.load_workbook(BytesIO(data), data_only=True)
+
+        # Определяем лист по индексу (избегаем проблем с кодировкой спецсимволов в имени)
+        sheet_idx_raw = request.form.get("sheet_idx", "")
+        if sheet_idx_raw.isdigit():
+            idx = int(sheet_idx_raw)
+            sheet_name = wb.sheetnames[idx] if 0 <= idx < len(wb.sheetnames) else None
+        else:
+            sheet_name = request.form.get("sheet", "").strip() or None
+
+        if not sheet_name:
+            return jsonify({"error": "Не указан лист"}), 400
+
         ws = wb[sheet_name]
         # Получить заголовки для выбранных колонок
         all_cols = detect_columns(ws, col_num)
