@@ -96,7 +96,7 @@ def detect_qty_col(ws, col_num: int) -> int | None:
     # Попытка 3: первая числовая ячейка в строке работы
     for row in ws.iter_rows(min_row=data_start, values_only=True):
         num = row[col_num] if col_num < len(row) else None
-        if is_hierarchy_num(num) and str(num).count('.') >= 2:
+        if is_hierarchy_num(num) and str(num).count('.') >= 1:
             for ci in range(col_num + 2, min(len(row), col_num + 8)):
                 if row[ci] is not None and isinstance(row[ci], (int, float)):
                     return ci
@@ -251,6 +251,13 @@ def transform(
     current_work_name = ""
     rows_out = []
 
+    # depth=1 строка может быть подразделом (если за ней идёт depth=2)
+    # или работой (если за ней идут материалы или другая depth=1/depth=0).
+    # Храним её до тех пор, пока не станет ясно, что она из себя представляет.
+    pending_num = None
+    pending_name = None
+    pending_vals = None  # get_vals() сохраняется только в режиме «только работы»
+
     total_rows = ws.max_row
     processed = 0
 
@@ -259,6 +266,29 @@ def transform(
             row[ci] if ci < len(row) else None
             for ci in selected_cols
         ]
+
+    def commit_pending():
+        """Зафиксировать отложенную depth=1 строку как работу."""
+        nonlocal current_work_num, current_work_name
+        nonlocal pending_num, pending_name, pending_vals
+        if pending_num is None:
+            return
+        current_work_num = pending_num
+        current_work_name = pending_name
+        if not has_materials and pending_vals is not None:
+            rows_out.append(
+                (current_work_num, current_section, current_work_name) + tuple(pending_vals)
+            )
+        pending_num = None
+        pending_name = None
+        pending_vals = None
+
+    def discard_pending():
+        """Отбросить отложенную depth=1 строку — она оказалась подразделом."""
+        nonlocal pending_num, pending_name, pending_vals
+        pending_num = None
+        pending_name = None
+        pending_vals = None
 
     for row in ws.iter_rows(min_row=data_start, values_only=True):
         processed += 1
@@ -276,6 +306,8 @@ def transform(
             # Материальная строка — есть хоть какое-то содержимое
             other_content = any(row[i] for i in range(len(row)) if i != col_num)
             if other_content:
+                # Отложенная depth=1 строка подтверждается как работа
+                commit_pending()
                 vals = get_vals(row)
                 rows_out.append(
                     (current_work_num, current_section, current_work_name) + tuple(vals)
@@ -289,9 +321,22 @@ def transform(
                 if row[ci] is not None:
                     name = str(row[ci]).strip()
                     break
+
             if depth == 0:
+                # Новый раздел: отложенная depth=1 строка (если есть) была работой
+                commit_pending()
                 current_section = name or ""
-            if depth >= 2:
+                current_work_num = ""
+                current_work_name = ""
+            elif depth == 1:
+                # Предыдущая отложенная depth=1 строка (если есть) была работой
+                commit_pending()
+                pending_num = num_str
+                pending_name = name or ""
+                pending_vals = get_vals(row) if not has_materials else None
+            else:  # depth >= 2
+                # Отложенная depth=1 строка оказалась подразделом, а не работой
+                discard_pending()
                 current_work_num = num_str
                 current_work_name = name or ""
                 if not has_materials:
@@ -302,6 +347,9 @@ def transform(
         else:
             if rows_out:
                 break
+
+    # Сброс отложенной работы в конце данных
+    commit_pending()
 
     buf = _write_output(rows_out, col_headers, output_target)
     return len(rows_out), mode, buf
